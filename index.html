@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tres en Raya</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .game-container {
+            background-color: #ffffff;
+            border-radius: 1.5rem; /* More rounded corners */
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            padding: 2rem;
+            text-align: center;
+            max-width: 500px; /* Max width for larger screens */
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 0.5rem; /* Space between cells */
+            width: 100%;
+            max-width: 300px; /* Fixed size for the board */
+            height: 300px; /* Fixed size for the board */
+            margin: 0 auto; /* Center the board */
+            background-color: #e2e8f0; /* Light gray for board background */
+            border-radius: 0.75rem;
+            padding: 0.5rem;
+        }
+
+        .cell {
+            width: 100%;
+            height: 100%;
+            background-color: #cbd5e0; /* Slightly darker gray for cells */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3rem; /* Larger font size for X/O */
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            color: #334155; /* Darker text color */
+        }
+
+        .cell:hover:not(.occupied) {
+            background-color: #94a3b8; /* Hover effect */
+            transform: scale(1.02);
+        }
+
+        .cell.occupied {
+            cursor: not-allowed;
+        }
+
+        .cell.x {
+            color: #ef4444; /* Red for X */
+        }
+
+        .cell.o {
+            color: #3b82f6; /* Blue for O */
+        }
+
+        .status-message {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1e293b; /* Darker text for status */
+            min-height: 2.5rem; /* Ensure space for messages */
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap; /* Allow wrapping on small screens */
+            justify-content: center;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            background-color: #4f46e5; /* Indigo */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out, box-shadow 0.2s ease-in-out;
+            border: none;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .btn:hover {
+            background-color: #4338ca; /* Darker indigo on hover */
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn.active {
+            background-color: #10b981; /* Green for active button */
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+            transform: none;
+        }
+
+        .btn-secondary {
+            background-color: #64748b; /* Slate gray */
+        }
+
+        .btn-secondary:hover {
+            background-color: #475569; /* Darker slate gray on hover */
+        }
+
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            text-align: center;
+        }
+
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="text-4xl font-bold text-gray-800 mb-4">Tres en Raya</h1>
+
+        <div class="status-message" id="statusMessage">Turno de X</div>
+
+        <div class="board" id="gameBoard">
+            </div>
+
+        <div class="button-group">
+            <button class="btn" id="twoPlayersBtn">2 Jugadores</button>
+            <button class="btn active" id="vsBotBtn">Vs. Bot</button>
+        </div>
+
+        <div class="button-group" id="difficultyButtons" style="display: flex;">
+            <button class="btn btn-secondary active" data-difficulty="easy">Fácil</button>
+            <button class="btn btn-secondary" data-difficulty="medium">Medio</button>
+            <button class="btn btn-secondary" data-difficulty="hard">Difícil</button>
+            <button class="btn btn-secondary" data-difficulty="impossible">Imposible</button>
+        </div>
+
+        <button class="btn btn-secondary" id="resetBtn">Reiniciar Juego</button>
+    </div>
+
+    <div id="myModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <p id="modalMessage"></p>
+            <button class="btn mt-4" id="modalOkButton">OK</button>
+        </div>
+    </div>
+
+    <script>
+        // Game state variables
+        let board = ['', '', '', '', '', '', '', '', ''];
+        let currentPlayer = 'X';
+        let gameActive = true;
+        let gameMode = 'bot'; // 'bot' or 'twoPlayers'
+        let botDifficulty = 'easy'; // 'easy', 'medium', 'hard', 'impossible'
+
+        // DOM elements
+        const gameBoard = document.getElementById('gameBoard');
+        const statusMessage = document.getElementById('statusMessage');
+        const twoPlayersBtn = document.getElementById('twoPlayersBtn');
+        const vsBotBtn = document.getElementById('vsBotBtn');
+        const difficultyButtons = document.getElementById('difficultyButtons');
+        const resetBtn = document.getElementById('resetBtn');
+
+        // Modal elements
+        const modal = document.getElementById('myModal');
+        const modalMessage = document.getElementById('modalMessage');
+        const closeButton = document.querySelector('.close-button');
+        const modalOkButton = document.getElementById('modalOkButton');
+
+        // Function to show custom modal
+        function showModal(message) {
+            modalMessage.textContent = message;
+            modal.style.display = 'flex'; // Use flex to center
+        }
+
+        // Function to hide custom modal
+        function hideModal() {
+            modal.style.display = 'none';
+        }
+
+        // Event listeners for modal
+        closeButton.onclick = hideModal;
+        modalOkButton.onclick = hideModal;
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                hideModal();
+            }
+        }
+
+        // Function to initialize the game board UI
+        function initializeBoard() {
+            gameBoard.innerHTML = ''; // Clear existing cells
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell', 'flex', 'items-center', 'justify-center', 'text-5xl', 'font-bold', 'cursor-pointer', 'rounded-lg');
+                cell.dataset.index = i;
+                cell.addEventListener('click', handleCellClick);
+                gameBoard.appendChild(cell);
+            }
+        }
+
+        // Function to update the UI based on the game state
+        function updateUI() {
+            board.forEach((cellValue, index) => {
+                const cell = gameBoard.children[index];
+                cell.textContent = cellValue;
+                cell.classList.remove('x', 'o', 'occupied');
+                if (cellValue === 'X') {
+                    cell.classList.add('x', 'occupied');
+                } else if (cellValue === 'O') {
+                    cell.classList.add('o', 'occupied');
+                }
+            });
+            // Only update the turn message if the game is active
+            if (gameActive) {
+                statusMessage.textContent = `Turno de ${currentPlayer}`;
+            }
+        }
+
+        // Function to handle a cell click
+        function handleCellClick(event) {
+            const clickedCell = event.target;
+            const clickedCellIndex = parseInt(clickedCell.dataset.index);
+
+            // If the cell is already occupied or the game is not active, do nothing
+            if (board[clickedCellIndex] !== '' || !gameActive) {
+                return;
+            }
+
+            const playerWhoMoved = currentPlayer; // Store the player who just moved
+            board[clickedCellIndex] = playerWhoMoved;
+            updateUI(); // Update UI to show the just-made move
+
+            // Check for win or draw
+            if (checkWin()) {
+                gameActive = false;
+                statusMessage.textContent = `¡${playerWhoMoved} Gana!`;
+                showModal(`¡${playerWhoMoved} Gana!`);
+                return;
+            }
+            if (checkDraw()) {
+                gameActive = false;
+                statusMessage.textContent = '¡Empate!';
+                showModal('¡Empate!');
+                return;
+            }
+
+            // Switch to the next player
+            currentPlayer = playerWhoMoved === 'X' ? 'O' : 'X';
+            statusMessage.textContent = `Turno de ${currentPlayer}`; // Update for next turn
+
+            // If in bot mode and it's the bot's turn, trigger bot move
+            if (gameMode === 'bot' && currentPlayer === 'O') {
+                setTimeout(botMove, 500); // Delay bot move for better UX
+            }
+        }
+
+        // Function to check for a win condition
+        function checkWin() {
+            const winConditions = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
+                [0, 4, 8], [2, 4, 6]             // Diagonals
+            ];
+
+            for (let i = 0; i < winConditions.length; i++) {
+                const [a, b, c] = winConditions[i];
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Function to check for a draw condition
+        function checkDraw() {
+            return board.every(cell => cell !== '');
+        }
+
+        // Function to reset the game
+        function resetGame() {
+            board = ['', '', '', '', '', '', '', '', ''];
+            currentPlayer = 'X';
+            gameActive = true;
+            initializeBoard(); // Re-render cells to clear classes
+            updateUI();
+            if (gameMode === 'bot' && currentPlayer === 'O') {
+                setTimeout(botMove, 500); // If bot starts, make its move
+            }
+        }
+
+        // Bot AI functions
+        function getEmptyCells(currentBoard) {
+            return currentBoard.map((cell, index) => cell === '' ? index : null).filter(index => index !== null);
+        }
+
+        function easyBotMove() {
+            const emptyCells = getEmptyCells(board);
+            const randomIndex = Math.floor(Math.random() * emptyCells.length);
+            return emptyCells[randomIndex];
+        }
+
+        function mediumBotMove() {
+            // Check for winning move
+            for (const index of getEmptyCells(board)) {
+                const tempBoard = [...board];
+                tempBoard[index] = 'O';
+                if (checkWinForPlayer(tempBoard, 'O')) {
+                    return index;
+                }
+            }
+
+            // Check for blocking move
+            for (const index of getEmptyCells(board)) {
+                const tempBoard = [...board];
+                tempBoard[index] = 'X';
+                if (checkWinForPlayer(tempBoard, 'X')) {
+                    return index;
+                }
+            }
+
+            // Take center if available
+            if (board[4] === '') return 4;
+
+            // Take a corner if available
+            const corners = [0, 2, 6, 8].filter(index => board[index] === '');
+            if (corners.length > 0) {
+                return corners[Math.floor(Math.random() * corners.length)];
+            }
+
+            // Otherwise, random move
+            return easyBotMove();
+        }
+
+        function hardBotMove() {
+            // Prioritize winning move
+            for (const index of getEmptyCells(board)) {
+                const tempBoard = [...board];
+                tempBoard[index] = 'O';
+                if (checkWinForPlayer(tempBoard, 'O')) {
+                    return index;
+                }
+            }
+
+            // Prioritize blocking move
+            for (const index of getEmptyCells(board)) {
+                const tempBoard = [...board];
+                tempBoard[index] = 'X';
+                if (checkWinForPlayer(tempBoard, 'X')) {
+                    return index;
+                }
+            }
+
+            // Minimax for one step lookahead (simplified)
+            let bestScore = -Infinity;
+            let bestMove = -1;
+            const emptyCells = getEmptyCells(board);
+
+            for (const index of emptyCells) {
+                const tempBoard = [...board];
+                tempBoard[index] = 'O'; // Bot's potential move
+
+                // Evaluate opponent's response
+                let opponentBestScore = Infinity;
+                for (const oppIndex of getEmptyCells(tempBoard)) {
+                    const oppTempBoard = [...tempBoard];
+                    oppTempBoard[oppIndex] = 'X'; // Opponent's potential response
+                    if (checkWinForPlayer(oppTempBoard, 'X')) {
+                        opponentBestScore = -1; // Opponent wins, bad for bot
+                        break;
+                    }
+                }
+
+                let currentScore = 0;
+                if (checkWinForPlayer(tempBoard, 'O')) {
+                    currentScore = 1; // Bot wins
+                } else if (opponentBestScore === -1) {
+                    currentScore = -1; // Opponent can win
+                } else {
+                    currentScore = 0; // Neutral
+                }
+
+                if (currentScore > bestScore) {
+                    bestScore = currentScore;
+                    bestMove = index;
+                }
+            }
+
+            if (bestMove !== -1) return bestMove;
+
+            // Fallback to medium strategy if no strategic move found
+            return mediumBotMove();
+        }
+
+
+        // Minimax algorithm for impossible difficulty
+        function minimax(newBoard, player) {
+            const emptyCells = getEmptyCells(newBoard);
+
+            // Check for terminal states
+            if (checkWinForPlayer(newBoard, 'O')) { // Bot wins
+                return { score: 10 };
+            } else if (checkWinForPlayer(newBoard, 'X')) { // Human wins
+                return { score: -10 };
+            } else if (emptyCells.length === 0) { // Draw
+                return { score: 0 };
+            }
+
+            const moves = [];
+
+            for (let i = 0; i < emptyCells.length; i++) {
+                const move = {};
+                move.index = emptyCells[i];
+                newBoard[emptyCells[i]] = player;
+
+                if (player === 'O') { // Bot's turn (maximizing player)
+                    const result = minimax(newBoard, 'X');
+                    move.score = result.score;
+                } else { // Human's turn (minimizing player)
+                    const result = minimax(newBoard, 'O');
+                    move.score = result.score;
+                }
+
+                newBoard[emptyCells[i]] = ''; // Reset the spot
+                moves.push(move);
+            }
+
+            let bestMove;
+            if (player === 'O') { // Maximize score for bot
+                let bestScore = -Infinity;
+                for (let i = 0; i < moves.length; i++) {
+                    if (moves[i].score > bestScore) {
+                        bestScore = moves[i].score;
+                        bestMove = i;
+                    }
+                }
+            } else { // Minimize score for human
+                let bestScore = Infinity;
+                for (let i = 0; i < moves.length; i++) {
+                    if (moves[i].score < bestScore) {
+                        bestScore = moves[i].score;
+                        bestMove = i;
+                    }
+                }
+            }
+            return moves[bestMove];
+        }
+
+        // Helper to check win for a specific player on a given board
+        function checkWinForPlayer(currentBoard, player) {
+            const winConditions = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
+                [0, 4, 8], [2, 4, 6]             // Diagonals
+            ];
+            for (let i = 0; i < winConditions.length; i++) {
+                const [a, b, c] = winConditions[i];
+                if (currentBoard[a] === player && currentBoard[b] === player && currentBoard[c] === player) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function impossibleBotMove() {
+            // The bot is 'O'
+            const bestSpot = minimax(board, 'O');
+            return bestSpot.index;
+        }
+
+        // Main bot move function
+        function botMove() {
+            if (!gameActive || currentPlayer !== 'O') {
+                return;
+            }
+
+            let moveIndex;
+            switch (botDifficulty) {
+                case 'easy':
+                    moveIndex = easyBotMove();
+                    break;
+                case 'medium':
+                    moveIndex = mediumBotMove();
+                    break;
+                case 'hard':
+                    moveIndex = hardBotMove();
+                    break;
+                case 'impossible':
+                    moveIndex = impossibleBotMove();
+                    break;
+                default:
+                    moveIndex = easyBotMove(); // Default to easy
+            }
+
+            if (moveIndex !== undefined && board[moveIndex] === '') {
+                const playerWhoMoved = currentPlayer; // Should be 'O'
+                board[moveIndex] = playerWhoMoved;
+                updateUI(); // Update UI to show bot's move
+
+                if (checkWin()) {
+                    gameActive = false;
+                    statusMessage.textContent = `¡${playerWhoMoved} Gana!`;
+                    showModal(`¡${playerWhoMoved} Gana!`);
+                    return;
+                }
+                if (checkDraw()) {
+                    gameActive = false;
+                    statusMessage.textContent = '¡Empate!';
+                    showModal('¡Empate!');
+                    return;
+                }
+
+                // Switch to the next player (human 'X')
+                currentPlayer = playerWhoMoved === 'X' ? 'O' : 'X';
+                statusMessage.textContent = `Turno de ${currentPlayer}`; // Update for next turn
+            }
+        }
+
+        // Event listeners for mode and difficulty buttons
+        twoPlayersBtn.addEventListener('click', () => {
+            gameMode = 'twoPlayers';
+            twoPlayersBtn.classList.add('active');
+            vsBotBtn.classList.remove('active');
+            difficultyButtons.style.display = 'none'; // Hide difficulty options
+            resetGame();
+        });
+
+        vsBotBtn.addEventListener('click', () => {
+            gameMode = 'bot';
+            vsBotBtn.classList.add('active');
+            twoPlayersBtn.classList.remove('active');
+            difficultyButtons.style.display = 'flex'; // Show difficulty options
+            resetGame();
+        });
+
+        difficultyButtons.querySelectorAll('.btn').forEach(button => {
+            button.addEventListener('click', (event) => {
+                // Remove active from all difficulty buttons
+                difficultyButtons.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
+                // Add active to the clicked button
+                event.target.classList.add('active');
+                botDifficulty = event.target.dataset.difficulty;
+                resetGame();
+            });
+        });
+
+        resetBtn.addEventListener('click', resetGame);
+
+        // Initial game setup when the page loads
+        window.onload = function() {
+            initializeBoard();
+            updateUI();
+            // If starting in bot mode, and it's O's turn (which it won't be initially),
+            // or if we want the bot to make the first move sometimes, we'd add logic here.
+            // For now, X (human) always starts.
+            if (gameMode === 'bot' && currentPlayer === 'O') {
+                setTimeout(botMove, 500);
+            }
+        };
+    </script>
+</body>
+</html>
